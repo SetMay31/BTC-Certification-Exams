@@ -225,8 +225,21 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .flag.partial { background: #e08a1e; }
 .flag.unanswered { background: #8a9a95; }
 
-/* Small, unobtrusive override toggle for auto-marked answers */
-.override-block { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+/* Collapsible review sub-topic sections */
+.review-group { margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; box-shadow: var(--shadow); }
+.group-summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--surface-2); color: var(--accent-ink); }
+.group-summary::-webkit-details-marker { display: none; }
+.group-title { flex: 1; font-weight: 700; font-size: 1rem; }
+.group-score { font-weight: 700; font-size: 0.92rem; color: var(--ink); white-space: nowrap; }
+.group-pending { color: var(--warn); font-weight: 600; }
+.group-summary::after { content: "▾"; color: var(--accent-2); transition: transform 0.15s; }
+details[open] .group-summary::after { transform: rotate(180deg); }
+.group-body { padding: 12px 12px 2px; }
+.group-body .card:last-child { margin-bottom: 12px; }
+
+/* Small, unobtrusive override toggle for auto-marked answers (faded until hovered/focused) */
+.override-block { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); opacity: 0.5; transition: opacity 0.15s; }
+.override-block:hover, .override-block:focus-within { opacity: 1; }
 .override-head { font-size: 0.8rem; color: var(--ink-muted); margin: 0 0 8px; }
 .override { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--ink-muted); }
 .override-label { user-select: none; }

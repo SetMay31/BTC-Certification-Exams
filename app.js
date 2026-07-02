@@ -32,6 +32,11 @@ const subtitle = document.getElementById("brand-subtitle");
 /* In-memory cache of loaded exam definitions (questions). */
 const defCache = {};
 
+/* Which review sub-topic sections are collapsed (by subtopic name). Kept in
+   memory so marking-driven re-renders don't reset the marker's open/closed state.
+   Missing key = open by default. */
+const reviewOpen = {};
+
 /* ----------------------------------------------------------------------------
    Persistent DB. { activeExam, attempts: { [examId]: attempt } }
    attempt = { student:{name,date}, answers, marks, phase, current, started }
@@ -470,11 +475,32 @@ function renderReview(def, att) {
   const graded = gradeAll(def, att);
   const pending = graded.filter((g) => g.res.needsMarking).length;
 
+  // Group by sub-topic, preserving order and original question numbers.
+  const groups = [];
+  graded.forEach((g, i) => {
+    let grp = groups.find((x) => x.sub === g.q.subtopic);
+    if (!grp) { grp = { sub: g.q.subtopic, items: [] }; groups.push(grp); }
+    grp.items.push({ g, num: i + 1 });
+  });
+
   let html = `<section class="screen">
-    <h2>Review &amp; mark</h2>
+    <h2>Review &amp; Mark</h2>
     <p class="muted">Go through each answer together. Free-text and "name" questions need marking; you can also override any auto-marked answer.</p>`;
 
-  graded.forEach((g, i) => { html += reviewCard(g.q, g.ans, g.res, i + 1, true); });
+  groups.forEach((grp) => {
+    const earned = grp.items.reduce((s, it) => s + it.g.res.earned, 0);
+    const max = grp.items.reduce((s, it) => s + it.g.res.max, 0);
+    const grpPending = grp.items.filter((it) => it.g.res.needsMarking).length;
+    const open = reviewOpen[grp.sub] !== false;
+    html += `<details class="review-group" data-section="${escapeAttr(grp.sub)}" ${open ? "open" : ""}>
+      <summary class="group-summary">
+        <span class="group-title">${escapeHtml(grp.sub)}</span>
+        <span class="group-score">${round1(earned)}/${max}${grpPending ? ` <span class="group-pending">· ${grpPending} to mark</span>` : ""}</span>
+      </summary>
+      <div class="group-body">`;
+    grp.items.forEach((it) => { html += reviewCard(it.g.q, it.g.ans, it.g.res, it.num, true, true); });
+    html += `</div></details>`;
+  });
 
   html += `<div class="sticky-actions">
     ${pending > 0 ? `<p class="pending-note">${pending} question${pending === 1 ? "" : "s"} still need marking before the result can be revealed.</p>` : ""}
@@ -486,13 +512,17 @@ function renderReview(def, att) {
 
   app.innerHTML = html;
   wireMarking(def, att);
+  app.querySelectorAll("details.review-group").forEach((d) => {
+    d.addEventListener("toggle", () => { reviewOpen[d.dataset.section] = d.open; });
+  });
   app.querySelector("#back-exam").addEventListener("click", () => { att.phase = "exam"; saveDB(); render(); window.scrollTo(0, 0); });
   const reveal = app.querySelector("#reveal-btn");
   if (reveal) reveal.addEventListener("click", () => go("result"));
 }
 
-/* One question card in review/result. `marking` enables controls. */
-function reviewCard(q, ans, res, num, marking) {
+/* One question card in review/result. `marking` enables controls.
+   `grouped` hides the sub-topic label (shown on the section header instead). */
+function reviewCard(q, ans, res, num, marking, grouped) {
   const statusClass = res.status === "correct" ? "correct" : res.status === "pending" ? "pending" : (res.status === "partial") ? "pending" : (res.status === "unanswered" || res.status === "incorrect") ? "incorrect" : "";
   const flag = res.status === "correct" ? `<span class="flag correct">✓ Correct</span>`
     : res.status === "partial" ? `<span class="flag partial">◑ Partial</span>`
@@ -500,7 +530,7 @@ function reviewCard(q, ans, res, num, marking) {
     : res.status === "unanswered" ? `<span class="flag unanswered">— Not answered</span>`
     : `<span class="flag incorrect">✗ Incorrect</span>`;
 
-  let body = `<div class="q-meta"><span class="q-subtopic">${q.subtopic}</span><span class="q-points">${res.earned}/${res.max}</span></div>
+  let body = `<div class="q-meta"><span class="q-subtopic">${grouped ? "" : escapeHtml(q.subtopic)}</span><span class="q-points">${res.earned}/${res.max}</span></div>
     <div class="review-flag">${flag}</div>
     <div class="q-prompt" style="font-size:1rem">${num}. ${escapeHtml(q.prompt)}</div>`;
 
