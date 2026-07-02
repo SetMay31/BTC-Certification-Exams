@@ -201,10 +201,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 /* Review + result */
 .result-hero { text-align: center; padding: 24px 16px; border-radius: var(--radius); color: #fff; background: var(--accent); margin-bottom: 16px; }
 .result-hero.pass { background: var(--good); }
-.result-hero.fail { background: var(--bad); }
+.result-hero.fail { background: var(--accent); }
 .result-pct { font-size: 3.4rem; font-weight: 700; line-height: 1; }
 .result-raw { font-size: 1.05rem; opacity: 0.95; margin-top: 6px; }
 .result-badge { display: inline-block; margin-top: 12px; padding: 6px 16px; border-radius: 999px; background: rgba(255,255,255,0.22); font-weight: 700; letter-spacing: 0.04em; }
+.result-hero.pass .result-badge { background: rgba(255,255,255,0.28); }
+.result-hero.fail .result-badge { background: #f6d4d1; color: #a83228; }
 .result-name { margin-top: 10px; font-size: 0.95rem; opacity: 0.95; }
 
 .review-q { border-left: 5px solid var(--line); }
