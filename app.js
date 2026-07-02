@@ -577,18 +577,20 @@ function renderMarkControls(q, res) {
     return out + `</div>`;
   }
   if (q.type === "photo-id") {
-    let out = `<div class="override-block"><p class="override-head">Auto-marked. Flip any part only if needed:</p>`;
+    let out = `<div class="override-block"><p class="override-head">Auto-marked — tap any part to override:</p>`;
     (res.detail.parts || []).forEach((p, i) => {
       out += `<div class="override-row">
-        <span class="override-name"><b>${p.label})</b> ${p.value ? escapeHtml(p.value) : "—"} <span class="mini ${p.correct ? "ok" : "no"}">${p.correct ? "✓" : "✗"}</span></span>
-        <label class="switch" title="Override auto-mark"><input type="checkbox" data-part-flip="${i}" ${p.flipped ? "checked" : ""}><span class="slider"></span></label></div>`;
+        <span class="override-name"><b>${p.label})</b> ${p.value ? escapeHtml(p.value) : "—"}</span>
+        <label class="vswitch" title="Correct / incorrect"><input type="checkbox" data-part-flip="${i}" ${p.correct ? "checked" : ""}><span class="vslider"></span></label></div>`;
     });
     return out + `</div>`;
   }
-  // Other auto types: a single small override toggle that flips the auto verdict.
+  // Other auto types: a tick/cross toggle showing the current verdict (checked = correct).
+  const isCorrect = res.status === "correct";
   return `<div class="override-block"><label class="override">
-    <span class="switch"><input type="checkbox" data-flip ${mark.flip ? "checked" : ""}><span class="slider"></span></span>
-    <span class="override-label">Override auto-mark${mark.flip ? " <b>(overridden)</b>" : ""}</span></label></div>`;
+    <span class="override-label">Auto-marked — tap to override:</span>
+    <span class="vswitch" title="Correct / incorrect"><input type="checkbox" data-flip ${isCorrect ? "checked" : ""}><span class="vslider"></span></span>
+  </label></div>`;
 }
 
 function wireMarking(def, att) {
@@ -610,13 +612,14 @@ function wireMarking(def, att) {
     const qid = b.closest("[data-qid]").dataset.qid;
     att.marks[qid] = att.marks[qid] || {};
     att.marks[qid].partFlip = att.marks[qid].partFlip || [];
-    att.marks[qid].partFlip[+b.dataset.partFlip] = b.checked;
+    const i = +b.dataset.partFlip;
+    att.marks[qid].partFlip[i] = !att.marks[qid].partFlip[i];
     rerender();
   }));
   app.querySelectorAll("[data-flip]").forEach((b) => b.addEventListener("change", () => {
     const qid = b.closest("[data-qid]").dataset.qid;
     att.marks[qid] = att.marks[qid] || {};
-    att.marks[qid].flip = b.checked;
+    att.marks[qid].flip = !att.marks[qid].flip;
     rerender();
   }));
 }

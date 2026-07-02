@@ -236,13 +236,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .mini.ok { color: #1c7a4f; }
 .mini.no { color: #c0392b; }
 
-/* Toggle switch */
-.switch { position: relative; display: inline-block; width: 40px; height: 24px; flex-shrink: 0; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.switch .slider { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: 0.15s; }
-.switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
-.switch input:checked + .slider { background: var(--warn); }
-.switch input:checked + .slider::before { transform: translateX(16px); }
+/* Tick / cross verdict toggle — red ✗ (incorrect) slides to green ✓ (correct) */
+.vswitch { position: relative; display: inline-block; width: 62px; height: 30px; flex-shrink: 0; }
+.vswitch input { opacity: 0; width: 0; height: 0; }
+.vslider { position: absolute; inset: 0; background: #c0392b; border-radius: 999px; transition: 0.15s; }
+.vslider::before {
+  content: "✗"; position: absolute; height: 24px; width: 24px; left: 3px; top: 3px;
+  background: #fff; color: #c0392b; font-weight: 700; font-size: 0.95rem;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.vswitch input:checked + .vslider { background: #1c7a4f; }
+.vswitch input:checked + .vslider::before { content: "✓"; color: #1c7a4f; transform: translateX(32px); }
 .answer-line { margin: 4px 0; }
 .answer-line .lbl { font-weight: 600; color: var(--ink-muted); }
 .correct-ans { color: var(--accent-ink); font-weight: 600; }
