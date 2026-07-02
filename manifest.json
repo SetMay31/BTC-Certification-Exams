@@ -1,0 +1,25 @@
+{
+  "name": "Black Turtle Conservation — Certification Exams",
+  "short_name": "BTC Exams",
+  "description": "Certification exams for Black Turtle Conservation — Conservation Specialist, Master Conservationist and Scientific Diver.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4faf8",
+  "theme_color": "#4f9a8b",
+  "icons": [
+    {
+      "src": "assets/app-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

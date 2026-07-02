@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Claude / local tooling
+.claude/
+
+# Original full-size photos (large; not needed in the deployed app)
+incoming/
+
+# Readable answer sources — kept LOCAL only so the answer key is not public.
+# Edit these locally, then run `python3 tools/encode.py` to regenerate the
+# committed .enc files that the app actually loads.
+data/*.json
+
+# Human-readable question/answer draft (contains the answer key)
+QUESTIONS-DRAFT.md
