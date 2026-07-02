@@ -207,9 +207,9 @@ function grade(q, ans, mark) {
     const parts = q.parts.map((p, i) => {
       const val = (values[i] || "").trim();
       let ok = val ? coralMatch(val, p) : false;
-      const ov = (mark.partOverride || [])[i];
-      if (ov === "correct") ok = true; else if (ov === "incorrect") ok = false;
-      return { label: p.label, value: val, correct: ok, expected: p.answers[0], override: ov || null };
+      const flipped = !!(mark.partFlip || [])[i];
+      if (flipped) ok = !ok;
+      return { label: p.label, value: val, correct: ok, expected: p.answers[0], flipped: flipped };
     });
     detail.parts = parts;
     earned = parts.reduce((sum, p) => sum + (p.correct ? q.pointsPerPart : 0), 0);
@@ -219,9 +219,11 @@ function grade(q, ans, mark) {
     return { max, earned, status, needsMarking: false, detail };
   }
 
-  // Whole-question marker override (all auto types except photo-id).
-  if (mark.override === "correct") { earned = max; status = "correct"; }
-  else if (mark.override === "incorrect") { earned = 0; status = "incorrect"; }
+  // Whole-question marker override — a single toggle that flips the auto verdict.
+  if (mark.flip) {
+    if (status === "correct") { earned = 0; status = "incorrect"; }
+    else { earned = max; status = "correct"; }
+  }
 
   return { max, earned, status, needsMarking: false, detail };
 }
@@ -492,14 +494,15 @@ function renderReview(def, att) {
 /* One question card in review/result. `marking` enables controls. */
 function reviewCard(q, ans, res, num, marking) {
   const statusClass = res.status === "correct" ? "correct" : res.status === "pending" ? "pending" : (res.status === "partial") ? "pending" : (res.status === "unanswered" || res.status === "incorrect") ? "incorrect" : "";
-  const tag = res.status === "correct" ? `<span class="verdict-tag correct">Correct</span>`
-    : res.status === "partial" ? `<span class="verdict-tag pending">Partial</span>`
-    : res.status === "pending" ? `<span class="verdict-tag pending">Needs marking</span>`
-    : res.status === "unanswered" ? `<span class="verdict-tag incorrect">Not answered</span>`
-    : `<span class="verdict-tag incorrect">Incorrect</span>`;
+  const flag = res.status === "correct" ? `<span class="flag correct">✓ Correct</span>`
+    : res.status === "partial" ? `<span class="flag partial">◑ Partial</span>`
+    : res.status === "pending" ? `<span class="flag pending">⚑ Manual review</span>`
+    : res.status === "unanswered" ? `<span class="flag unanswered">— Not answered</span>`
+    : `<span class="flag incorrect">✗ Incorrect</span>`;
 
   let body = `<div class="q-meta"><span class="q-subtopic">${q.subtopic}</span><span class="q-points">${res.earned}/${res.max}</span></div>
-    <div class="q-prompt" style="font-size:1rem">${num}. ${escapeHtml(q.prompt)} ${tag}</div>`;
+    <div class="review-flag">${flag}</div>
+    <div class="q-prompt" style="font-size:1rem">${num}. ${escapeHtml(q.prompt)}</div>`;
 
   body += renderAnswerReview(q, ans, res);
 
@@ -574,23 +577,18 @@ function renderMarkControls(q, res) {
     return out + `</div>`;
   }
   if (q.type === "photo-id") {
-    const ov = mark.partOverride || [];
-    let out = `<p class="small muted" style="margin-top:8px">Override any auto-mark:</p>`;
+    let out = `<div class="override-block"><p class="override-head">Auto-marked. Flip any part only if needed:</p>`;
     (res.detail.parts || []).forEach((p, i) => {
-      out += `<div class="slot-mark-row"><span class="txt"><b>${p.label})</b> ${p.value ? escapeHtml(p.value) : "—"}</span>
-        <button class="mark-btn ${ov[i] === "correct" ? "on-correct" : ""}" data-part="${i}" data-v="correct">✓</button>
-        <button class="mark-btn ${ov[i] === "incorrect" ? "on-incorrect" : ""}" data-part="${i}" data-v="incorrect">✗</button>
-        <button class="mark-btn" data-part="${i}" data-v="auto">Auto</button></div>`;
+      out += `<div class="override-row">
+        <span class="override-name"><b>${p.label})</b> ${p.value ? escapeHtml(p.value) : "—"} <span class="mini ${p.correct ? "ok" : "no"}">${p.correct ? "✓" : "✗"}</span></span>
+        <label class="switch" title="Override auto-mark"><input type="checkbox" data-part-flip="${i}" ${p.flipped ? "checked" : ""}><span class="slider"></span></label></div>`;
     });
-    return out;
+    return out + `</div>`;
   }
-  // Other auto types: whole-question override.
-  const ov = mark.override;
-  return `<div class="mark-controls">
-    <button class="mark-btn ${!ov ? "on-correct" : ""}" data-override="auto" style="${!ov ? "" : "background:var(--surface);color:var(--ink);border-color:var(--line)"}">Auto</button>
-    <button class="mark-btn ${ov === "correct" ? "on-correct" : ""}" data-override="correct">✓ Correct</button>
-    <button class="mark-btn ${ov === "incorrect" ? "on-incorrect" : ""}" data-override="incorrect">✗ Incorrect</button>
-  </div>`;
+  // Other auto types: a single small override toggle that flips the auto verdict.
+  return `<div class="override-block"><label class="override">
+    <span class="switch"><input type="checkbox" data-flip ${mark.flip ? "checked" : ""}><span class="slider"></span></span>
+    <span class="override-label">Override auto-mark${mark.flip ? " <b>(overridden)</b>" : ""}</span></label></div>`;
 }
 
 function wireMarking(def, att) {
@@ -608,17 +606,17 @@ function wireMarking(def, att) {
     att.marks[qid].slotMarks[+b.dataset.slotMark] = b.dataset.v === "correct";
     rerender();
   }));
-  app.querySelectorAll("[data-part]").forEach((b) => b.addEventListener("click", () => {
+  app.querySelectorAll("[data-part-flip]").forEach((b) => b.addEventListener("change", () => {
     const qid = b.closest("[data-qid]").dataset.qid;
     att.marks[qid] = att.marks[qid] || {};
-    att.marks[qid].partOverride = att.marks[qid].partOverride || [];
-    att.marks[qid].partOverride[+b.dataset.part] = b.dataset.v === "auto" ? null : b.dataset.v;
+    att.marks[qid].partFlip = att.marks[qid].partFlip || [];
+    att.marks[qid].partFlip[+b.dataset.partFlip] = b.checked;
     rerender();
   }));
-  app.querySelectorAll("[data-override]").forEach((b) => b.addEventListener("click", () => {
+  app.querySelectorAll("[data-flip]").forEach((b) => b.addEventListener("change", () => {
     const qid = b.closest("[data-qid]").dataset.qid;
     att.marks[qid] = att.marks[qid] || {};
-    att.marks[qid].override = b.dataset.override === "auto" ? null : b.dataset.override;
+    att.marks[qid].flip = b.checked;
     rerender();
   }));
 }

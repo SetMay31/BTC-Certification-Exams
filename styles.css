@@ -211,10 +211,38 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .review-q.correct { border-left-color: var(--good); }
 .review-q.incorrect { border-left-color: var(--bad); }
 .review-q.pending { border-left-color: var(--warn); }
-.verdict-tag { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
-.verdict-tag.correct { background: #e2f5ec; color: #1c7a4f; }
-.verdict-tag.incorrect { background: #fbe4e2; color: #a83228; }
-.verdict-tag.pending { background: #fbeee2; color: #a5652a; }
+/* Prominent verdict flag */
+.review-flag { margin: 2px 0 10px; }
+.flag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 7px 14px; border-radius: 8px; color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.flag.correct { background: #1c7a4f; }
+.flag.incorrect { background: #c0392b; }
+.flag.pending { background: #e08a1e; }
+.flag.partial { background: #e08a1e; }
+.flag.unanswered { background: #8a9a95; }
+
+/* Small, unobtrusive override toggle for auto-marked answers */
+.override-block { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.override-head { font-size: 0.8rem; color: var(--ink-muted); margin: 0 0 8px; }
+.override { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--ink-muted); }
+.override-label { user-select: none; }
+.override-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; }
+.override-name { font-size: 0.9rem; }
+.mini { font-weight: 700; }
+.mini.ok { color: #1c7a4f; }
+.mini.no { color: #c0392b; }
+
+/* Toggle switch */
+.switch { position: relative; display: inline-block; width: 40px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: 0.15s; }
+.switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+.switch input:checked + .slider { background: var(--warn); }
+.switch input:checked + .slider::before { transform: translateX(16px); }
 .answer-line { margin: 4px 0; }
 .answer-line .lbl { font-weight: 600; color: var(--ink-muted); }
 .correct-ans { color: var(--accent-ink); font-weight: 600; }
