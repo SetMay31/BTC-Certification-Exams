@@ -491,7 +491,7 @@ function renderReview(def, att) {
     const earned = grp.items.reduce((s, it) => s + it.g.res.earned, 0);
     const max = grp.items.reduce((s, it) => s + it.g.res.max, 0);
     const grpPending = grp.items.filter((it) => it.g.res.needsMarking).length;
-    const open = reviewOpen[grp.sub] !== false;
+    const open = reviewOpen[grp.sub] === true;
     html += `<details class="review-group" data-section="${escapeAttr(grp.sub)}" ${open ? "open" : ""}>
       <summary class="group-summary">
         <span class="group-title">${escapeHtml(grp.sub)}</span>
@@ -503,7 +503,7 @@ function renderReview(def, att) {
   });
 
   html += `<div class="sticky-actions">
-    ${pending > 0 ? `<p class="pending-note">${pending} question${pending === 1 ? "" : "s"} still need marking before the result can be revealed.</p>` : ""}
+    ${pending > 0 ? `<p class="pending-note">${pending} question${pending === 1 ? "" : "s"} still ${pending === 1 ? "needs" : "need"} marking before the result can be revealed.</p>` : ""}
     <div class="btn-row">
       <button class="btn ghost" id="back-exam">Back to exam</button>
       <button class="btn" id="reveal-btn" ${pending > 0 ? "disabled" : ""}>Reveal result →</button>
