@@ -15,6 +15,7 @@
   --accent-2: #3f8879;
   --accent-ink: #2f6f63;
   --accent-soft: #d7ece6;
+  --topbar: #2f6f63;
 
   --warn: #c97b5c;
   --good: #2fae93;
@@ -28,26 +29,29 @@
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
-/* Conservation Specialist — light teal */
+/* Conservation Specialist — green teal */
 body[data-theme="light"] {
   --accent: #6fc3b4;
   --accent-2: #55ad9d;
-  --accent-ink: #35786b;
+  --accent-ink: #2f6f63;
   --accent-soft: #e0f2ee;
+  --topbar: #2f6f63;
 }
-/* Master Conservationist — mid teal */
+/* Master Conservationist — blue teal */
 body[data-theme="mid"] {
-  --accent: #3f9384;
-  --accent-2: #2f7d6f;
-  --accent-ink: #245c51;
-  --accent-soft: #d3ebe5;
+  --accent: #2f8a9c;
+  --accent-2: #24707f;
+  --accent-ink: #184a56;
+  --accent-soft: #d5e9ee;
+  --topbar: #163d47;
 }
-/* Scientific Diver — dark teal */
+/* Scientific Diver — deep ocean blue */
 body[data-theme="dark"] {
-  --accent: #1f6055;
-  --accent-2: #164c43;
-  --accent-ink: #103a33;
-  --accent-soft: #c6e2db;
+  --accent: #1d5266;
+  --accent-2: #143d4d;
+  --accent-ink: #0c2a36;
+  --accent-soft: #c9dde5;
+  --topbar: #0b232d;
 }
 
 * { box-sizing: border-box; }
@@ -69,7 +73,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--accent);
+  background: var(--topbar);
   color: white;
   padding-top: calc(10px + env(safe-area-inset-top));
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);

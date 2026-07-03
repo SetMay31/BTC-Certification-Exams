@@ -321,7 +321,7 @@ function render() {
 function renderHome() {
   applyTheme("light");
   subtitle.textContent = "Certification Exams";
-  const swatch = { light: "#6fc3b4", mid: "#3f9384", dark: "#1f6055" };
+  const swatch = { light: "#6fc3b4", mid: "#2f8a9c", dark: "#1d5266" };
   let html = `<section class="screen"><h2>Choose your exam</h2>
     <p class="muted">Select the certification level you are being assessed for.</p>`;
   for (const e of EXAMS) {
