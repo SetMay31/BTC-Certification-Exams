@@ -175,6 +175,19 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .slot-unit input { padding-right: 44px; }
 .slot-unit .unit-tag { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); font-weight: 600; }
 
+/* Text-slot labels */
+.slot-label { font-size: 0.82rem; font-weight: 600; color: var(--accent-ink); margin: 2px 0 4px; }
+
+/* Order / rank pills */
+.order-list { display: flex; flex-direction: column; gap: 8px; }
+.order-pill { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.order-rank { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+.order-label { flex: 1; font-weight: 600; }
+.order-moves { display: flex; gap: 4px; flex-shrink: 0; }
+.order-btn { width: 40px; height: 40px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--accent-ink); font-size: 1rem; line-height: 1; }
+.order-btn:active { background: var(--accent-soft); }
+.order-btn[disabled] { opacity: 0.3; }
+
 /* Photo-id grid */
 .coral-part { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 12px; background: var(--surface-2); }
 .coral-part .label { font-weight: 700; color: var(--accent-ink); }

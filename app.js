@@ -9,7 +9,7 @@
 ---------------------------------------------------------------------------- */
 const EXAMS = [
   { id: "conservation-specialist", title: "Conservation Specialist", theme: "light", data: "data/conservation-specialist.enc", available: true },
-  { id: "master-conservationist", title: "Master Conservationist", theme: "mid", data: null, available: false },
+  { id: "master-conservationist", title: "Master Conservationist", theme: "mid", data: "data/master-conservationist.enc", available: true },
   { id: "scientific-diver", title: "Scientific Diver", theme: "dark", data: null, available: false },
 ];
 
@@ -135,6 +135,7 @@ function isAnswered(q, ans) {
     case "free-text": return typeof ans === "string" && ans.trim() !== "";
     case "text-slots": return Array.isArray(ans) && ans.some((s) => (s || "").trim() !== "");
     case "photo-id": return Array.isArray(ans) && ans.some((s) => (s || "").trim() !== "");
+    case "order": return Array.isArray(ans) && ans.join("|") !== q.options.join("|");
     default: return false;
   }
 }
@@ -158,15 +159,25 @@ function grade(q, ans, mark) {
       const per = max / slots;
       const values = ans || [];
       const slotMarks = mark.slotMarks || [];
-      let needs = false, earned = 0;
+      let needs = false;
       const detail = { slots: [] };
       for (let i = 0; i < slots; i++) {
         const v = (values[i] || "").trim();
         const m = slotMarks[i];
-        if (v === "") { detail.slots.push({ value: "", mark: false, empty: true }); continue; }
-        if (m == null) { needs = true; detail.slots.push({ value: v, mark: null }); continue; }
-        if (m === true) earned += per;
-        detail.slots.push({ value: v, mark: m });
+        const label = (q.slotLabels || [])[i] || "";
+        if (v === "") { detail.slots.push({ value: "", mark: false, empty: true, label }); continue; }
+        if (m == null) { needs = true; detail.slots.push({ value: v, mark: null, label }); continue; }
+        detail.slots.push({ value: v, mark: m, label });
+      }
+      // Score: grouped (some slots share a mark, needing all) or per-slot (1 each).
+      let earned = 0;
+      if (q.scoreGroups) {
+        for (const g of q.scoreGroups) {
+          const allTrue = g.slots.every((si) => slotMarks[si] === true);
+          if (allTrue) earned += g.points;
+        }
+      } else {
+        for (let i = 0; i < slots; i++) if (slotMarks[i] === true) earned += per;
       }
       const status = needs ? "pending" : earned >= max ? "correct" : earned > 0 ? "partial" : "incorrect";
       return { max, earned, status, needsMarking: needs, detail };
@@ -187,10 +198,26 @@ function grade(q, ans, mark) {
     const ok = ans === q.answer;
     earned = ok ? max : 0; status = ok ? "correct" : "incorrect";
   } else if (q.type === "mc-multi") {
-    const sel = [...ans].sort((a, b) => a - b);
-    const cor = [...q.answer].sort((a, b) => a - b);
-    const ok = sel.length === cor.length && sel.every((v, i) => v === cor[i]);
-    earned = ok ? max : 0; status = ok ? "correct" : "incorrect";
+    if (q.scoring === "partial") {
+      // 1 mark per correct option selected (capped by selectLimit in the UI).
+      const per = max / q.answer.length;
+      const nCorrect = ans.filter((i) => q.answer.includes(i)).length;
+      earned = nCorrect * per;
+      status = earned >= max ? "correct" : earned > 0 ? "partial" : "incorrect";
+    } else {
+      const sel = [...ans].sort((a, b) => a - b);
+      const cor = [...q.answer].sort((a, b) => a - b);
+      const ok = sel.length === cor.length && sel.every((v, i) => v === cor[i]);
+      earned = ok ? max : 0; status = ok ? "correct" : "incorrect";
+    }
+  } else if (q.type === "order") {
+    const cur = ans || q.options;
+    let nRight = 0;
+    for (let i = 0; i < q.answer.length; i++) if (cur[i] === q.answer[i]) nRight++;
+    const per = max / q.answer.length;
+    earned = nRight * per;
+    status = nRight === q.answer.length ? "correct" : nRight > 0 ? "partial" : "incorrect";
+    detail.order = { current: cur, correct: q.answer, nRight };
   } else if (q.type === "number") {
     const num = parseFloat(String(ans).replace(",", "."));
     const ok = !isNaN(num) && Math.abs(num - q.answer) < 1e-9;
@@ -207,9 +234,16 @@ function grade(q, ans, mark) {
         if (!used[g] && matchesGroup(val, q.answers[g])) { used[g] = true; slotDetail[s].matched = true; break; }
       }
     }
-    const allMatched = used.every(Boolean);
+    const nMatched = used.filter(Boolean).length;
     detail.slots = slotDetail;
-    earned = allMatched ? max : 0; status = allMatched ? "correct" : "incorrect";
+    if (q.scoring === "per-slot") {
+      const per = max / q.answers.length;
+      earned = nMatched * per;
+      status = nMatched === q.answers.length ? "correct" : nMatched > 0 ? "partial" : "incorrect";
+    } else {
+      const allMatched = used.every(Boolean);
+      earned = allMatched ? max : 0; status = allMatched ? "correct" : "incorrect";
+    }
   } else if (q.type === "photo-id") {
     const values = ans || [];
     const parts = q.parts.map((p, i) => {
@@ -404,8 +438,24 @@ function renderInput(q, ans) {
     case "text-slots": {
       const vals = ans || [];
       let out = "";
-      for (let i = 0; i < q.slots; i++) out += `<input class="slot-input" data-slot="${i}" type="text" value="${escapeAttr(vals[i] || "")}" placeholder="Answer ${i + 1}" />`;
+      for (let i = 0; i < q.slots; i++) {
+        const lbl = (q.slotLabels || [])[i];
+        if (lbl) out += `<div class="slot-label">${escapeHtml(lbl)}</div>`;
+        out += `<input class="slot-input" data-slot="${i}" type="text" value="${escapeAttr(vals[i] || "")}" placeholder="${escapeAttr(lbl || "Answer " + (i + 1))}" />`;
+      }
       return out;
+    }
+    case "order": {
+      const cur = ans || q.options;
+      return `<p class="select-hint">Use the ▲ ▼ buttons to put these in order.</p><div class="order-list">` + cur.map((item, i) =>
+        `<div class="order-pill">
+          <span class="order-rank">${i + 1}</span>
+          <span class="order-label">${escapeHtml(item)}</span>
+          <span class="order-moves">
+            <button type="button" class="order-btn" data-move="up" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">▲</button>
+            <button type="button" class="order-btn" data-move="down" data-i="${i}" ${i === cur.length - 1 ? "disabled" : ""} aria-label="Move down">▼</button>
+          </span>
+        </div>`).join("") + `</div>`;
     }
     case "photo-id": {
       const vals = ans || [];
@@ -446,6 +496,16 @@ function wireInput(q, att) {
     const inputs = [...app.querySelectorAll("[data-slot]")];
     const commit = () => setAns(inputs.map((x) => x.value));
     inputs.forEach((x) => x.addEventListener("input", commit));
+  } else if (q.type === "order") {
+    app.querySelectorAll(".order-btn").forEach((b) => b.addEventListener("click", () => {
+      const i = +b.dataset.i;
+      const arr = (att.answers[q.id] || q.options).slice();
+      const j = b.dataset.move === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= arr.length) return;
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      att.answers[q.id] = arr; saveDB();
+      renderExam(defCache[DB.activeExam], att);
+    }));
   }
 }
 function refreshOptionStyles() {
@@ -570,11 +630,23 @@ function renderAnswerReview(q, ans, res) {
     case "text-slots": {
       const vals = ans || [];
       let out = `<p class="answer-line">${yourLabel}</p><ul style="margin:0 0 6px 18px">`;
-      for (let i = 0; i < q.slots; i++) out += `<li>${vals[i] ? escapeHtml(vals[i]) : "<span class='muted'>—</span>"}</li>`;
+      for (let i = 0; i < q.slots; i++) {
+        const lbl = (q.slotLabels || [])[i];
+        out += `<li>${lbl ? `<span class="lbl">${escapeHtml(lbl)}:</span> ` : ""}${vals[i] ? escapeHtml(vals[i]) : "<span class='muted'>—</span>"}</li>`;
+      }
       out += `</ul>`;
       if (q.grading === "manual" && q.guide) out += guideBox(q.guide);
       if (q.grading !== "manual" && q.answers) out += `<p class="answer-line"><span class="lbl">Accepted:</span> <span class="correct-ans">${escapeHtml(q.answers.map((g) => g[0]).join(", "))}</span></p>`;
       return out;
+    }
+    case "order": {
+      const cur = (res.detail.order && res.detail.order.current) || ans || q.options;
+      let out = `<div>`;
+      for (let i = 0; i < q.answer.length; i++) {
+        const item = cur[i], ok = item === q.answer[i];
+        out += `<p class="answer-line">${i + 1}. ${escapeHtml(item || "—")} ${ok ? "✓" : `✗ <span class="correct-ans">(${escapeHtml(q.answer[i])})</span>`}</p>`;
+      }
+      return out + `</div>`;
     }
     case "photo-id": {
       const parts = res.detail.parts || [];
@@ -602,8 +674,9 @@ function renderMarkControls(q, res) {
     const sm = mark.slotMarks || [];
     let out = `<div style="margin-top:8px">`;
     (res.detail.slots || []).forEach((s, i) => {
-      if (s.empty) { out += `<div class="slot-mark-row"><span class="txt muted">Answer ${i + 1}: —</span></div>`; return; }
-      out += `<div class="slot-mark-row"><span class="txt">${escapeHtml(s.value)}</span>
+      const lbl = s.label ? `<b>${escapeHtml(s.label)}:</b> ` : "";
+      if (s.empty) { out += `<div class="slot-mark-row"><span class="txt muted">${lbl || `Answer ${i + 1}: `}—</span></div>`; return; }
+      out += `<div class="slot-mark-row"><span class="txt">${lbl}${escapeHtml(s.value)}</span>
         <button class="mark-btn ${sm[i] === true ? "on-correct" : ""}" data-slot-mark="${i}" data-v="correct">✓</button>
         <button class="mark-btn ${sm[i] === false ? "on-incorrect" : ""}" data-slot-mark="${i}" data-v="incorrect">✗</button></div>`;
     });
@@ -718,6 +791,7 @@ function downloadSummary(def, att) {
     else if (q.type === "number") yourAns = ans ? ans + (q.unit || "") : "—";
     else if (q.type === "free-text") yourAns = ans || "—";
     else if (q.type === "text-slots") yourAns = (ans || []).filter(Boolean).join(", ") || "—";
+    else if (q.type === "order") yourAns = ((r.detail.order && r.detail.order.current) || ans || q.options).map((x, i) => `${i + 1}. ${x}`).join("; ");
     else if (q.type === "photo-id") yourAns = (r.detail.parts || []).map((p) => `${p.label}: ${p.value || "—"}`).join("; ");
     let correct = "";
     if (q.type === "mc-single") correct = q.options[q.answer];
@@ -725,6 +799,7 @@ function downloadSummary(def, att) {
     else if (q.type === "mc-multi") correct = q.answer.map((x) => q.options[x]).join(", ");
     else if (q.type === "number") correct = q.answer + (q.unit || "");
     else if (q.type === "text-slots" && q.answers) correct = q.answers.map((gr) => gr[0]).join(", ");
+    else if (q.type === "order") correct = q.answer.map((x, i) => `${i + 1}. ${x}`).join("; ");
     else if (q.type === "photo-id") correct = (r.detail.parts || []).map((p) => `${p.label}: ${p.expected}`).join("; ");
     else if (q.grading === "manual") correct = "(marker assessed)";
     return `<tr><td>${i + 1}</td><td>${escapeHtml(q.prompt)}</td><td>${escapeHtml(yourAns)}</td><td>${escapeHtml(correct)}</td><td>${verdict}</td><td style="text-align:center">${round1(r.earned)}/${r.max}</td></tr>`;

@@ -2,7 +2,7 @@
 // Caches the app shell + exam data + images so it works fully offline.
 // Bump CACHE_VERSION whenever app files change so clients pick up updates.
 
-const CACHE_VERSION = "btc-exams-v13";
+const CACHE_VERSION = "btc-exams-v14";
 const SHELL = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const SHELL = [
   "./app.js",
   "./manifest.json",
   "./data/conservation-specialist.enc",
+  "./data/master-conservationist.enc",
   "./assets/logo.png",
   "./assets/icon.svg",
   "./assets/app-icon.png",
