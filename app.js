@@ -17,6 +17,9 @@ const EXAMS = [
    text in the deployed files. This deters casual snooping only — not real
    security. Keep the same key here and in tools/encode.py. */
 const OBF_KEY = "BlackTurtleConservation";
+
+/* Bumped whenever a bundled image is replaced, so a new URL busts old caches. */
+const ASSET_VER = "13";
 function deobfuscate(b64) {
   const bin = atob(b64.trim());
   const key = new TextEncoder().encode(OBF_KEY);
@@ -408,7 +411,7 @@ function renderInput(q, ans) {
       const vals = ans || [];
       return q.parts.map((p, i) =>
         `<div class="coral-part"><span class="label">${p.label})</span>
-          <img src="${p.image}" alt="Coral ${p.label}" />
+          <img src="${p.image}?v=${ASSET_VER}" alt="Coral ${p.label}" />
           <input class="slot-input" data-slot="${i}" type="text" value="${escapeAttr(vals[i] || "")}" placeholder="Genus for ${p.label}" /></div>`).join("");
     }
     default: return "";
