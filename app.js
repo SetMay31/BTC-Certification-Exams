@@ -20,6 +20,17 @@ const OBF_KEY = "BlackTurtleConservation";
 
 /* Bumped whenever a bundled image is replaced, so a new URL busts old caches. */
 const ASSET_VER = "13";
+
+/* Per-theme colours (mirror the CSS themes) so home cards can be themed individually. */
+const THEME_COLORS = {
+  light: { accent: "#6fc3b4", accent2: "#55ad9d", ink: "#2f6f63", soft: "#e0f2ee" },
+  mid: { accent: "#2f8a9c", accent2: "#24707f", ink: "#184a56", soft: "#d5e9ee" },
+  dark: { accent: "#1d5266", accent2: "#143d4d", ink: "#0c2a36", soft: "#c9dde5" },
+};
+function themeStyle(theme) {
+  const t = THEME_COLORS[theme] || THEME_COLORS.mid;
+  return `--accent:${t.accent};--accent-2:${t.accent2};--accent-ink:${t.ink};--accent-soft:${t.soft}`;
+}
 function deobfuscate(b64) {
   const bin = atob(b64.trim());
   const key = new TextEncoder().encode(OBF_KEY);
@@ -321,15 +332,15 @@ function render() {
 function renderHome() {
   applyTheme("light");
   subtitle.textContent = "Certification Exams";
-  const swatch = { light: "#6fc3b4", mid: "#2f8a9c", dark: "#1d5266" };
   let html = `<section class="screen"><h2>Choose your exam</h2>
     <p class="muted">Select the certification level you are being assessed for.</p>`;
   for (const e of EXAMS) {
     const att = DB.attempts[e.id];
+    const ts = themeStyle(e.theme);
+    const swatchColor = (THEME_COLORS[e.theme] || THEME_COLORS.mid).accent;
     let status = "", actions = "";
     if (!e.available) {
-      status = `<span class="chip">Coming soon</span>`;
-      html += `<div class="card exam-card soon"><h3><span class="theme-swatch" style="background:${swatch[e.theme]}"></span>${e.title}</h3><p class="muted small">Not yet available.</p></div>`;
+      html += `<div class="card exam-card soon" style="${ts}"><h3><span class="theme-swatch" style="background:${swatchColor}"></span>${e.title}</h3><p class="muted small">Not yet available.</p></div>`;
       continue;
     }
     if (att && att.started) {
@@ -339,7 +350,7 @@ function renderHome() {
     } else {
       actions = `<button class="btn" data-open="${e.id}">Start exam</button>`;
     }
-    html += `<div class="card exam-card"><h3><span class="theme-swatch" style="background:${swatch[e.theme]}"></span>${e.title} ${status}</h3>
+    html += `<div class="card exam-card" style="${ts}"><h3><span class="theme-swatch" style="background:${swatchColor}"></span>${e.title} ${status}</h3>
       <div class="btn-row" style="margin-top:10px">${actions}</div></div>`;
   }
   html += `</section>`;
