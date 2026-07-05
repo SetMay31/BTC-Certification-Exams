@@ -480,10 +480,11 @@ function renderInput(q, ans) {
     }
     case "photo-id": {
       const vals = ans || [];
+      const noun = q.inputNoun || "Answer";
       return q.parts.map((p, i) =>
         `<div class="coral-part"><span class="label">${p.label})</span>
-          <img src="${p.image}?v=${ASSET_VER}" alt="Coral ${p.label}" />
-          <input class="slot-input" data-slot="${i}" type="text" value="${escapeAttr(vals[i] || "")}" placeholder="Genus for ${p.label}" /></div>`).join("");
+          <img src="${p.image}?v=${ASSET_VER}" alt="${escapeAttr(noun)} ${p.label}" />
+          <input class="slot-input" data-slot="${i}" type="text" value="${escapeAttr(vals[i] || "")}" placeholder="${escapeAttr(noun)} for ${p.label}" /></div>`).join("");
     }
     default: return "";
   }
