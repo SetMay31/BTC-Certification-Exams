@@ -224,7 +224,10 @@ function grade(q, ans, mark) {
   } else if (q.type === "order") {
     const cur = ans || q.options;
     let nRight = 0;
-    for (let i = 0; i < q.answer.length; i++) if (cur[i] === q.answer[i]) nRight++;
+    for (let i = 0; i < q.answer.length; i++) {
+      const acc = q.answer[i];
+      if (Array.isArray(acc) ? acc.includes(cur[i]) : cur[i] === acc) nRight++;
+    }
     const per = max / q.answer.length;
     earned = nRight * per;
     status = nRight === q.answer.length ? "correct" : nRight > 0 ? "partial" : "incorrect";
@@ -665,8 +668,10 @@ function renderAnswerReview(q, ans, res) {
       const cur = (res.detail.order && res.detail.order.current) || ans || q.options;
       let out = `<div>`;
       for (let i = 0; i < q.answer.length; i++) {
-        const item = cur[i], ok = item === q.answer[i];
-        out += `<p class="answer-line">${i + 1}. ${escapeHtml(item || "—")} ${ok ? "✓" : `✗ <span class="correct-ans">(${escapeHtml(q.answer[i])})</span>`}</p>`;
+        const acc = q.answer[i];
+        const accLabel = Array.isArray(acc) ? acc.join(" or ") : acc;
+        const ok = Array.isArray(acc) ? acc.includes(cur[i]) : cur[i] === acc;
+        out += `<p class="answer-line">${i + 1}. ${escapeHtml(cur[i] || "—")} ${ok ? "✓" : `✗ <span class="correct-ans">(${escapeHtml(accLabel)})</span>`}</p>`;
       }
       return out + `</div>`;
     }
@@ -821,7 +826,7 @@ function downloadSummary(def, att) {
     else if (q.type === "mc-multi") correct = q.answer.map((x) => q.options[x]).join(", ");
     else if (q.type === "number") correct = q.answer + (q.unit || "");
     else if (q.type === "text-slots" && q.answers) correct = q.answers.map((gr) => gr[0]).join(", ");
-    else if (q.type === "order") correct = q.answer.map((x, i) => `${i + 1}. ${x}`).join("; ");
+    else if (q.type === "order") correct = q.answer.map((x, i) => `${i + 1}. ${Array.isArray(x) ? x.join(" or ") : x}`).join("; ");
     else if (q.type === "photo-id") correct = (r.detail.parts || []).map((p) => `${p.label}: ${p.expected}`).join("; ");
     else if (q.grading === "manual") correct = "(marker assessed)";
     return `<tr><td>${i + 1}</td><td>${escapeHtml(q.prompt)}</td><td>${escapeHtml(yourAns)}</td><td>${escapeHtml(correct)}</td><td>${verdict}</td><td style="text-align:center">${round1(r.earned)}/${r.max}</td></tr>`;
