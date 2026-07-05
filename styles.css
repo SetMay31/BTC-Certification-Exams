@@ -181,6 +181,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 
 /* Text-slot labels */
 .slot-label { font-size: 0.82rem; font-weight: 600; color: var(--accent-ink); margin: 2px 0 4px; }
+.slot-image { width: 100%; border-radius: var(--radius); border: 1px solid var(--line); display: block; margin-bottom: 14px; }
 
 /* Order / rank pills */
 .order-list { display: flex; flex-direction: column; gap: 8px; }

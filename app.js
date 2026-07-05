@@ -10,7 +10,7 @@
 const EXAMS = [
   { id: "conservation-specialist", title: "Conservation Specialist", theme: "light", data: "data/conservation-specialist.enc", available: true },
   { id: "master-conservationist", title: "Master Conservationist", theme: "mid", data: "data/master-conservationist.enc", available: true },
-  { id: "scientific-diver", title: "Scientific Diver", theme: "dark", data: null, available: false },
+  { id: "scientific-diver", title: "Scientific Diver", theme: "dark", data: "data/scientific-diver.enc", available: true },
 ];
 
 /* Exam data is lightly obfuscated (XOR + base64) so the answer key isn't plain
@@ -234,18 +234,28 @@ function grade(q, ans, mark) {
     const ok = !isNaN(num) && Math.abs(num - q.answer) < 1e-9;
     earned = ok ? max : 0; status = ok ? "correct" : "incorrect";
   } else if (q.type === "text-slots") {
-    // Auto, all-or-nothing, order-independent group matching.
-    const used = new Array(q.answers.length).fill(false);
     const values = ans || [];
-    const slotDetail = values.map((v) => ({ value: (v || "").trim(), matched: false }));
-    for (let s = 0; s < slotDetail.length; s++) {
-      const val = slotDetail[s].value;
-      if (!val) continue;
-      for (let g = 0; g < q.answers.length; g++) {
-        if (!used[g] && matchesGroup(val, q.answers[g])) { used[g] = true; slotDetail[s].matched = true; break; }
+    let slotDetail, nMatched;
+    if (q.ordered) {
+      // Position-specific: slot i must match answers[i].
+      slotDetail = q.answers.map((grp, i) => {
+        const val = (values[i] || "").trim();
+        return { value: val, matched: val ? matchesGroup(val, grp) : false };
+      });
+      nMatched = slotDetail.filter((s) => s.matched).length;
+    } else {
+      // Order-independent group matching.
+      const used = new Array(q.answers.length).fill(false);
+      slotDetail = values.map((v) => ({ value: (v || "").trim(), matched: false }));
+      for (let s = 0; s < slotDetail.length; s++) {
+        const val = slotDetail[s].value;
+        if (!val) continue;
+        for (let g = 0; g < q.answers.length; g++) {
+          if (!used[g] && matchesGroup(val, q.answers[g])) { used[g] = true; slotDetail[s].matched = true; break; }
+        }
       }
+      nMatched = used.filter(Boolean).length;
     }
-    const nMatched = used.filter(Boolean).length;
     detail.slots = slotDetail;
     if (q.scoring === "per-slot") {
       const per = max / q.answers.length;
@@ -259,7 +269,7 @@ function grade(q, ans, mark) {
     const values = ans || [];
     const parts = q.parts.map((p, i) => {
       const val = (values[i] || "").trim();
-      let ok = val ? coralMatch(val, p) : false;
+      let ok = val ? (p.match === "fuzzy" ? matchesGroup(val, p.answers) : coralMatch(val, p)) : false;
       const flipped = !!(mark.partFlip || [])[i];
       if (flipped) ok = !ok;
       return { label: p.label, value: val, correct: ok, expected: p.answers[0], flipped: flipped };
@@ -448,7 +458,7 @@ function renderInput(q, ans) {
       return `<textarea class="free-input" id="free-input" placeholder="Type your answer…">${escapeHtml(ans || "")}</textarea>`;
     case "text-slots": {
       const vals = ans || [];
-      let out = "";
+      let out = q.image ? `<img class="slot-image" src="${q.image}?v=${ASSET_VER}" alt="${escapeAttr(q.prompt)}" />` : "";
       for (let i = 0; i < q.slots; i++) {
         const lbl = (q.slotLabels || [])[i];
         if (lbl) out += `<div class="slot-label">${escapeHtml(lbl)}</div>`;
